@@ -5,7 +5,7 @@
 # Logs from data runs
 # logs/
 logs/debug
-**/models/*.tar  # Model checkpoints
+logs/**/models/*.tar
 
 # Vim swap
 [._]*.s[a-v][a-z]
