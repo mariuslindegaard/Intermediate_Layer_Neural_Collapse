@@ -3,7 +3,8 @@
 # Downloaded datasets
 **/datasets
 # Logs from data runs
-logs/
+# logs/
+logs/debug
 **/models/*.tar  # Model checkpoints
 
 # Vim swap
