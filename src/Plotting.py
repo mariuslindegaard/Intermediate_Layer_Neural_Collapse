@@ -417,20 +417,15 @@ class NCPlotter:
         layer_order = df['layer_name'].unique()
         df['layer_name'] = df['layer_name'].astype(pd.api.types.CategoricalDtype()).cat.set_categories(layer_order, ordered=True)
 
-        if 'sigma_idx' in df.columns:
-            warnings.warn("Old evaluation of angleBetweenSubspace, skipping.")
-            return None
-
+        selection = df['epoch'].isin([0, 300])
+        selection &= df['layer_name'] != 'model'
         eval_rank = 10
 
-        selection = df['epoch'].isin([0, 300])
-        # selection = df['epoch'].isin([0, 1, 2, 3])
-        # selection = df['epoch'].isin(NCPlotter.standard_epochs)
-        selection &= df['layer_name'] != 'model'
-        selection &= df['rank'] == eval_rank
-
-        # Divide by number of singular values (for experiments post 2022-10-28)
-        # df['value'] = df['value'].map(lambda val: val / num_sing_vals)  # TODO(marius): Remove "*10" and update AngleBetweenSubspaces measurer (i.e. remove "/10")
+        if 'sigma_idx' in df.columns:
+            warnings.warn("Old evaluation of angleBetweenSubspace, skipping.")
+            selection &= (df['sigma_idx'] == eval_rank-1) & (df['sum'].isin([True]))
+        else:
+            selection &= df['rank'] == eval_rank
 
         plot_utils.add_nc_line(df, nc_layer)
         sns.lineplot(data=df[selection], x='layer_name', y='value', hue='epoch',
@@ -438,10 +433,11 @@ class NCPlotter:
                      )
 
         plot_utils.capitalize_legend(plt.gca().get_legend())
-        plt.ylabel(r'PABS')
+        plt.ylabel(r'Cos PABS')
         plt.xlabel('Layer')
 
-        plt.title(f"Angle between subspaces, rank {eval_rank}")
+        # plt.title(f"Cosine angle between subspaces, rank {eval_rank}")
+        plt.title(f"Cosine angle between subspaces")
         plt.yscale('linear')
         plt.ylim([None, 1.04])
         plt.xticks(rotation=90)
@@ -700,20 +696,20 @@ class NCPlotter:
     def get_relevant_measures() -> Dict[str, Tuple[callable, int]]:
         relevant_measures = {
             # Other:
-            'Accuracy': (NCPlotter._plot_accuracy, 1),
-            'CDNV': (NCPlotter._plot_cdnv, 1),
-            'ActivationCovSVs': (NCPlotter._plot_activationCovSVs, 1),
-            'ActivationStableRank': (NCPlotter._plot_activationStableRank, 1),
+            # 'Accuracy': (NCPlotter._plot_accuracy, 1),
+            # 'CDNV': (NCPlotter._plot_cdnv, 1),
+            # 'ActivationCovSVs': (NCPlotter._plot_activationCovSVs, 1),
+            # 'ActivationStableRank': (NCPlotter._plot_activationStableRank, 1),
             # NC1:
-            'NC1': (NCPlotter._plot_NC1, 1),
-            'Traces': (NCPlotter._plot_traces, 2),
+            # 'NC1': (NCPlotter._plot_NC1, 1),
+            # 'Traces': (NCPlotter._plot_traces, 2),
             # NC2:
-            'ETF': (NCPlotter._plot_ETF, 3),
-            'WeightSVs': (NCPlotter._plot_weightSVs, 1),
+            # 'ETF': (NCPlotter._plot_ETF, 3),
+            # 'WeightSVs': (NCPlotter._plot_weightSVs, 1),
             # NC3:
             'AngleBetweenSubspaces': (NCPlotter._plot_angleBetweenSubspaces, 1),
             # NC4:
-            'NCC': (NCPlotter._plot_NCC, 1)
+            # 'NCC': (NCPlotter._plot_NCC, 1)
         }
         return relevant_measures
 
