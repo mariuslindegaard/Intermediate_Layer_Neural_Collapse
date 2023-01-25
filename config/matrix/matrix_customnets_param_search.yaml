@@ -38,6 +38,7 @@ Measurements:
 ##   and choose one of them to parse as another equivalent dictionary of values.
 Matrix:
   _Exclusive:
+
     mlp_large:
       Model:
         model-name: [mlp_large]
@@ -46,15 +47,7 @@ Matrix:
         measures: [True]
       Data:
         dataset-id: [MNIST, FashionMNIST, cifar10, svhn]  # , stl10, cifar100]
-    # mlp_xlarge:
-    #   Model:
-    #     model-name: [mlp_xlarge]
-    #     embedding-layers: [[fc]]
-    #   Measurements:
-    #     measures: [True]
-    #   Optimizer:
-    #     weight-decay: [5.e-4]
-    #     lr: [0.01]
+
     convnet_deep:
       Model:
         model-name: [convnet_deep]
@@ -63,15 +56,7 @@ Matrix:
         measures: [Fast_StableRank]
       Data:
         dataset-id: [MNIST, FashionMNIST, cifar10, svhn]  # , stl10, cifar100]
-    # convnet_huge:
-    #   Model:
-    #     model-name: [convnet_huge]
-    #     embedding-layers: [[conv, fc]]
-    #   Measurements:
-    #     measures: [Fast_StableRank]
-    #   Optimizer:
-    #     weight-decay: [5.e-4]
-    #     lr: [0.0025]
+
   Optimizer:
     lr: [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
     weight-decay: [5.e-4, 2.e-3, 1.e-4]

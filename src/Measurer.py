@@ -845,7 +845,7 @@ class SharedMeasurementVarsCache:
 
 def _test_cache():
     from Experiment import Experiment
-    config_path = "../config/default.yaml"
+    config_path = "../config/minimal_example.yaml"
     exp = Experiment(config_path)
     # exp.do_measurements()
     cache = SharedMeasurementVarsCache()

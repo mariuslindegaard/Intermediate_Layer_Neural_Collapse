@@ -13,7 +13,7 @@ Optimizer:
   loss: mseloss
   weight-decay: 5.e-4    # Weight decay
   lr: 0.067              # Learning rate
-  lr-decay: 0.2
+  lr-decay: 0.1
   lr-decay-steps: 3      # Number of learning rate decay steps
   momentum: 0.9          # Optimizer momentum
   epochs: 2              # Number of epochs to train for
@@ -57,30 +57,6 @@ Matrix:
       Model:
         model-name: [mlp_linear]
         embedding-layers: [True]
-    # vgg16:
-    #   Model:
-    #     model-name: [vgg16]
-    #     embedding_layers: [[
-    #       features.0, features.2, features.4,
-    #       features.5, features.7, features.9,
-    #       features.10, features.12, features.14, features.16,
-    #       features.17, features.19, features.21, features.23,
-    #       features.24, features.26, features.28, features.30,
-    #       avgpool,
-    #       classifier.0, classifier.3, classifier.6,
-    #     ]]
-    # vgg16_bn:
-    #   Model:
-    #     model-name: [vgg16_bn]
-    #     embedding_layers: [[
-    #       features.0, features.3, features.6,
-    #       features.7, features.10, features.13,
-    #       features.14, features.17, features.20, features.23,
-    #       features.24, features.27, features.30, features.33,
-    #       features.34, features.37, features.40, features.43,
-    #       avgpool,
-    #       classifier.0, classifier.3, classifier.6,
-    #     ]]
   Data:
     dataset-id: [MNIST_debug]
     # dataset-id: [MNIST, FashionMNIST, cifar10, svhn, stl10, cifar100]

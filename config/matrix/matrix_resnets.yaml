@@ -1,0 +1,114 @@
+---
+# Neural collapse config file. All must be specified
+Model:
+  model-name: None            # Name of model in "our_models"
+  embedding-layers: None # Intermediate layers to use for NC loss with weightings. "^" used to indicate start of network.
+
+Data:
+  dataset-id: None       # Which dataset-getter to use. Note that shapes are provided by the dataset
+  batch-size: 128        # Mini-batch size
+  do-augmentation: False # Whether to do data augmentation
+
+Optimizer:
+  loss: mseloss
+  weight-decay: None     # Weight decay
+  lr: None               # Learning rate
+  lr-decay: 0.1
+  lr-decay-steps: 2      # Number of learning rate decay steps
+  momentum: 0.9          # Optimizer momentum
+  epochs: 350            # Number of epochs to train for
+  warmup_epochs: 1       # Number of epochs to do linear lr-warmup for
+
+Logging:
+  # When to store weights and calculate measurements
+  save-dir: logs/matrix/resnets
+  # log-interval: 10        # At what interval to log checkpoints. Always includes first 10 epochs
+  log-epochs: [0, 1, 2, 3, 5, 10, 20, 40, 60, 80, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350]  # Overrides log-interval
+
+Measurements:
+  measures: Fast_StableRank
+
+# Matrix for parsing into multiple configs to run with slurm
+# Parsed as follows:
+## All innermost values (leaves)  must be given in a list.
+## For the current dictionairy level:
+##   Any key other than "_Exclusive" is parsed and the innermost list of that key is used in the matrix.
+##   If the key is _Exclusive, assume mutual exclusivity within the list of its contents,
+##   and choose one of them to parse as another equivalent dictionary of values.
+Matrix:
+  _Exclusive:
+    SVHN:
+      _Exclusive:
+        resnet34:
+          Model:
+            model-name: [resnet34]
+            embedding-layers: [[
+              .conv1, .conv2, .conv3,
+              ^avgpool, ^fc
+            ]]
+          Optimizer:
+            weight-decay: [5.e-4]
+            lr: [0.009596916]
+      Data:
+        dataset-id: [SVHN]       # Which dataset-getter to use. Note that shapes are provided by the dataset
+
+    MNIST:
+      _Exclusive:
+        resnet18:
+          Model:
+            model-name: [resnet18]
+            embedding-layers: [[
+              .conv1, .conv2, .conv3,
+              ^avgpool, ^fc
+            ]]
+          Optimizer:
+            weight-decay: [5.e-4]
+            lr: [0.018420157]
+      Data:
+        dataset-id: [MNIST]       # Which dataset-getter to use. Note that shapes are provided by the dataset
+
+    FashionMNIST:
+      _Exclusive:
+        resnet18:
+          Model:
+            model-name: [resnet18]
+            embedding-layers: [[
+              .conv1, .conv2, .conv3,
+              ^avgpool, ^fc
+            ]]
+          Optimizer:
+            weight-decay: [5.e-4]
+            lr: [0.094015077]
+      Data:
+        dataset-id: [FashionMNIST]       # Which dataset-getter to use. Note that shapes are provided by the dataset
+
+    CIFAR10:
+      _Exclusive:
+        resnet50:
+          Model:
+            model-name: [resnet50]
+            embedding-layers: [[
+              .conv1, .conv2, .conv3,
+              ^avgpool, ^fc
+            ]]
+          Optimizer:
+            weight-decay: [5.e-4]
+            lr: [0.03]  # Different from [Papyan & Han, 2020] because of bad accuracy, see matrix_resnet50_cifar10_reruns.yaml for param search
+      Data:
+        dataset-id: [CIFAR10]       # Which dataset-getter to use. Note that shapes are provided by the dataset
+
+    STL-10:
+      _Exclusive:
+        resnet18:
+          Model:
+            model-name: [resnet18]
+            embedding-layers: [[
+              .conv1, .conv2, .conv3,
+              ^avgpool, ^fc
+            ]]
+          Optimizer:
+            weight-decay: [5.e-4]
+            lr: [0.06786044]
+      Data:
+        dataset-id: [STL10]       # Which dataset-getter to use. Note that shapes are provided by the dataset
+...
