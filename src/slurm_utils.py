@@ -118,7 +118,7 @@ def _matrix_config_parser(config_matrix: Dict) -> Iterator[Tuple[Dict[str, Any],
         current_edits: Dict[str, Any] = {}
         current_path = ''
         for edit, path_amendment in edits:
-            current_edits = {**current_edits, **edit}  # TODO(marius): Make function with recursively defined edits (i.e. same keys)
+            current_edits = {**current_edits, **edit}
             current_path = os.path.join(current_path, path_amendment)
 
         for exclusive_edits, exclusive_path in exclusive_pool:
@@ -215,8 +215,9 @@ def run_experiments(num_scripts: int, base_savedir: Logger.SaveDirs):
 _JOB_SCRIPT_STUMP = \
     """#!/bin/bash
 
-source ~/.conda_init
-conda activate nc
+# source ~/.conda_init
+# source ~/.bashrc
+conda activate nc  # If this fails you likely have not installed conda or havve not sourced the bashrc
 
 echo
 echo "~~~ RUNNING EXPERIMENT! ~~~"
@@ -238,11 +239,9 @@ _SBATCH_SCRIPT_STUMP = \
 #SBATCH --exclude=node021
 #SBATCH --mem=20000
 #SBATCH --requeue
-# #SBATCH --qos=cbmm  # TODO(marius): Remove cbmm-identifier for submission
-# #SBATCH -p cbmm
 # #SBATCH --output=./output.log
 
-# #SBATCH --mail-user=lindegrd@mit.edu  # TODO(marius): Remove email identifier
+# #SBATCH --mail-user=yourmail@yourinstitution.com
 # #SBATCH --mail-type=ALL
 
 # memory 1000 MiB

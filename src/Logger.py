@@ -25,7 +25,7 @@ class SaveDirs:
         try:
             root_dir = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'],
                                                stderr=subprocess.DEVNULL).decode('ascii')[:-1]
-        except (subprocess.CalledProcessError) as e:  # TODO(marius): Make exception catching less general
+        except (subprocess.CalledProcessError) as e:
             # warnings.warn("Finding git root directory failed with the following error message:\n"+str(e))
             root_dir = os.path.abspath(os.path.join(
                 os.path.dirname(__file__), os.pardir
@@ -126,7 +126,7 @@ class Logger:
         else:
             self.log_epochs = set(range(0, 11)) | set(range(0, 2001, logging_cfg['log-interval']))
 
-    def write_to_log(self, logs: Dict[Hashable, float]):  # TODO(marius): Add test to verify all data is in correct order
+    def write_to_log(self, logs: Dict[Hashable, float]):
         """Log all logging values to file.
 
         :param logs: Dict of values to log.

@@ -8,8 +8,6 @@ from torch.utils.data import DataLoader  # , Subset
 
 from typing import Optional, Dict, Tuple
 
-# TODO(marius): Verify whether shuffling of data is needed
-
 
 class DatasetWrapper:
     train_loader: DataLoader

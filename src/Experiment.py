@@ -48,7 +48,7 @@ class Experiment:
         # Get all relevant measures
         if measurements_cfg['measures'] is True:
             measure_strings = Measurer.ALL_MEASURES
-        elif type(measurements_cfg['measures']) is str:  # TODO(marius): Make configs use dicts instead.
+        elif type(measurements_cfg['measures']) is str:
             measure_strings = []
             if 'fast' in measurements_cfg['measures'].lower():
                 measure_strings += Measurer.FAST_MEASURES
@@ -68,8 +68,9 @@ class Experiment:
         self.logger.copy_config_to_dir()
 
         # A few prints:
-        print(self.wrapped_model.base_model)
-        print(f'Model: {model_cfg["model-name"]}, tracking layers:', *self.wrapped_model.output_layers, sep=',\n\t')
+        # print(self.wrapped_model.base_model)
+        # print(f'Model: {model_cfg["model-name"]}, tracking layers:', *self.wrapped_model.output_layers, sep=',\n\t')
+        print(f'Model: {model_cfg["model-name"]}, tracking layers:', *self.wrapped_model.output_layers, sep=', ')
         print(f'Measuring: {list(self.measures.keys())}')
         print(f'Saving to {self.logger.save_dirs.base}')
 
@@ -141,13 +142,11 @@ class Experiment:
             warnings.warn("Hacky cifar doubleclass stuff happening")
             self.dataset.num_classes = 2
 
-        # todo(marius): Implement tensorboard writer (if needed), or just writing to logs.
         pbar_epoch = tqdm.tqdm(range(start_epoch, self.wrapped_optimizer.max_epochs),
                                initial=start_epoch, total=self.wrapped_optimizer.max_epochs,
                                desc='Epochs',
                                )
         for epoch in pbar_epoch:
-            # todo(marius): Implement warmup training (if wanting to copy cifar_100 repo exactly)
             if epoch in self.logger.log_epochs:
                 self.logger.save_model(self.wrapped_model, epoch, wrapped_optimizer=self.wrapped_optimizer)
 

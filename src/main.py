@@ -10,9 +10,6 @@ import os
 
 def run_experiment(config_file_path: str, plot: bool):
     """Run the experiment corresponding to the config file"""
-    # TODO(marius): Add option to clean before training (i.e. removing directory before run)
-    # TODO(marius): Add option to throw error if measurements already exist. (Maybe lower level code?)
-    # TODO(marius): Add plotting automatically
     print("Loading experiment")
     exp = Experiment(config_file_path)
     print("Training NN")

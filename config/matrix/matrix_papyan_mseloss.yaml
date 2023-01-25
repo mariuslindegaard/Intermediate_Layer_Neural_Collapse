@@ -209,10 +209,8 @@ Matrix:
       Data:
         dataset-id: [STL10]       # Which dataset-getter to use. Note that shapes are provided by the dataset
 
-    # TODO(marius): Add "Measurements: measures: Fast_StableRank as default
     ############################################
     ############################################
-    # TODO(marius): Add MLPs and Tomer's ConvNets?
     # mlp_large:
     #   Model:
     #     model-name: [mlp_large]

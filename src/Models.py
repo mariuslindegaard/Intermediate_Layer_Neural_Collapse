@@ -200,45 +200,6 @@ class ConvNet(nn.Module):
             layers
         )
 
-        """
-        self.num_input_channels = input_channels
-        self.num_matrices = self.depth = settings.depth 
-        self.bn = use_batch_norm
-
-        layers = nn.Sequential()
-
-        self.input_dimensions = [32]
-        self.output_dimensions = [16]
-
-        layers.append(nn.Conv2d(self.num_input_channels, hidden_layers_channels[0], 2, 2))
-        if self.bn:
-            layers.append(nn.BatchNorm2d(hidden_layers_channels[0]))
-            self.input_dimensions.append(None)
-            self.output_dimensions.append(None)
-
-        self.input_dimensions += [16, None]
-        self.output_dimensions += [8, None]
-        layers.append(nn.Conv2d(hidden_layers_channels[0], hidden_layers_channels[1], 2, 2))
-        if self.bn:
-            layers.append(nn.BatchNorm2d(hidden_layers_channels[1]))
-            self.input_dimensions.append(None)
-            self.output_dimensions.append(None)
-        layers.append(self.activation)
-
-        for i in range(self.depth):
-            self.input_dimensions += [8, None]
-            self.output_dimensions += [8, None]
-
-            layers.append(nn.Conv2d(self.width, self.width, 3, 1, 1))
-            if self.bn:
-                layers.append(nn.BatchNorm2d(self.width))
-                self.input_dimensions.append(None)
-                self.output_dimensions.append(None)
-            layers.append(self.activation)
-
-        self.layers = layers
-        """
-
     def forward(self, x):
         out = self.model(x)
         return out
@@ -274,6 +235,7 @@ class _ConvBlock(nn.Module):
         if self.use_relu:
             x = self.relu(x)
         return x
+
 
 def get_model(model_cfg: Dict, datasetwrapper: DatasetWrapper):
     model_name: str = model_cfg['model-name'].lower()
@@ -391,4 +353,4 @@ def get_model(model_cfg: Dict, datasetwrapper: DatasetWrapper):
 
 
 if __name__ == "__main__":
-    raise NotImplementedError("Test not implemented for 'Models.py'")  # TODO(marius): Implement tester
+    raise NotImplementedError("Test not implemented for 'Models.py'")  # TODO: Implement tester

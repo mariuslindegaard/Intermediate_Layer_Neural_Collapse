@@ -2,13 +2,11 @@ import matplotlib.legend
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import tqdm
 
 import os
 import yaml
 
 from Logger import SaveDirs
-import utils
 
 from typing import Dict, Any, Iterator, Tuple, Optional, Union
 import warnings
@@ -52,7 +50,6 @@ class plot_utils:
     @staticmethod
     def config_contains(config_params: dict, required_params: dict) -> bool:
         """Find wether all of 'required_params' exist and are equal in 'config_params'"""
-        # TODO: More testing of this to ensure it always works
         for key, val in required_params.items():
             if key not in config_params.keys():
                 return False
@@ -105,7 +102,6 @@ class plot_utils:
         last_epoch = measure_df['epoch'].max()
         if last_epoch != max(NCPlotter.standard_epochs):
             warnings.warn(f"Last epoch is not {max(NCPlotter.standard_epochs)} but {last_epoch}. Make sure this does not break the plot.")
-        # layer_map = {layer_name: idx for idx, layer_name in enumerate(measure_df['layer_name'].unique())}
 
         satisfies_collapse = condition(measure_df)
         first_clp = measure_df[satisfies_collapse].groupby(['epoch'])['layer_name'].min()
@@ -117,7 +113,7 @@ class plot_utils:
         """Reformat layer names to make them more presentable in plots"""
         assert hasattr(layer_names, 'cat'), "Pandas series layer_names is not categorical!"
 
-        warnings.warn("TODO: Implement layer name mapper")  # TODO(marius)
+        # TODO: Implement layer name mapper"
 
         return layer_names
 
@@ -327,14 +323,11 @@ class NCPlotter:
         mean_df.sort_values(by='layer_name', key=lambda layer_names: layer_names.map(layer_order), inplace=True)
         std_df.sort_values(by='layer_name', key=lambda layer_names: layer_names.map(layer_order), inplace=True)
 
-        # print("Doing 1/(C-1) correction", end=", ")
-        # mean_df['value'].loc[std_df['type'] == 'angle'] = mean_df[std_df['type'] == 'angle']['value'] + 1/(10-1)
         plot_utils.add_nc_line(mean_df, nc_layer)
         sns.lineplot(data=mean_df[mean_df['type'] == 'angle'], y='value', **plot_config)
         plt.title(r'Mean of $1/(1-C) + \cos(\mu_i, \mu_j)$')
 
         plot_utils.capitalize_legend(plt.gca().get_legend())
-        # plt.ylabel(r'Avg $\frac{1}{1-C} + \cos(\mu_i, \mu_j)$')
         plt.ylabel(None)
 
         ###
@@ -356,7 +349,6 @@ class NCPlotter:
         plt.title(r'Relative std of $\|\mu_i\|_2$')
 
         plot_utils.capitalize_legend(plt.gca().get_legend())
-        # plt.ylabel(r'Std $\|\mu_i\|_2$ / Avg $\|\mu_i\|_2$')
         plt.ylabel(None)
 
         plt.xlabel('Layer')
@@ -391,12 +383,10 @@ class NCPlotter:
 
         epoch = max(df['epoch'])
         selection = df['sum'].isin([False])
-        # selection &= df['sigma_idx'].isin([i for i in range(max_sv)])
         selection &= df['epoch'].isin([epoch])
         selection &= df['layer_name'] != 'model'
 
         df_sel = df[selection]
-        # sns.lineplot(data=df[selection], x='layer_name', y='value', hue='sigma_idx')
 
         sv_first_10 = df_sel['sigma_idx'].isin([i for i in range(10)])
         sv_after_10 = df_sel['sigma_idx'].isin([i for i in range(10, max_sv)])
@@ -407,15 +397,11 @@ class NCPlotter:
 
         sns.lineplot(data=df_sel[sv_first_10], x='layer_name', y='value', hue='sigma_idx', palette='dark:red')
         sns.lineplot(data=df_sel[sv_after_10], x='layer_name', y='value', hue='sigma_idx', palette='dark:#ADF', legend='brief')
-        # plt.legend(title='Sing. val. idx', labels=['First 10', f'11-{max_sv}'])   # TODO(marius): Make legends
-        # sns.lineplot(data=df_sel[sv_first_10], x='layer_name', y='value', label='First 10', color='red', ci=100)
 
 
         plt.yscale('log')
-        # plt.ylabel(r'$\sum_{i=1}^{m}\sigma_i / \sum_{i}\sigma_i$')
 
         plot_utils.capitalize_legend(plt.gca().get_legend())
-        # plt.ylabel(r'$\sigma_i / \sum_{j}\sigma_j$')
         plt.ylabel(r'$\sigma_i / \sum\sigma_j$')
         plt.xlabel('Layer')
 
@@ -458,9 +444,6 @@ class NCPlotter:
         # selection = df['epoch'].isin(NCPlotter.standard_epochs)
         selection &= df['layer_name'] != 'model'
         selection &= df['rank'] == eval_rank
-
-        # Divide by number of singular values (for experiments post 2022-10-28)
-        # df['value'] = df['value'].map(lambda val: val / num_sing_vals)  # TODO(marius): Remove "*10" and update AngleBetweenSubspaces measurer (i.e. remove "/10")
 
         plot_utils.add_nc_line(df, nc_layer)
         sns.lineplot(data=df[selection], x='layer_name', y='value', hue='epoch',
@@ -530,9 +513,6 @@ class NCPlotter:
 
         selection = df['epoch'].isin(NCPlotter.standard_epochs)
         selection &= df['layer_name'] != 'model'
-
-        # print("Doing 1/(C^2-C) correction", end=", ")
-        # df['value'].loc[selection] = df['value'].loc[selection] / (10 * (10-1))
 
         plot_utils.add_nc_line(df, nc_layer)
         sns.lineplot(data=df[selection], x='layer_name', y='value', hue='epoch')
@@ -634,67 +614,6 @@ class NCPlotter:
 
         return axes
 
-    '''For plotting the distribution of SVs
-    @staticmethod
-    def _plot_activationCovSVs(df: pd.DataFrame, axes: Optional[Tuple[plt.Axes]] = None, nc_layer: Optional[str] = None):
-        if axes is None:
-            fig, ax = plt.subplots(1, 1, figsize=(2*FIGSIZE_BASE, 2*FIGSIZE_BASE))
-            axes = (ax,)
-        plt.sca(axes[0])
-        layer_order = df['layer_name'].unique()
-        # df['layer_name'] = df['layer_name'].astype(pd.api.types.CategoricalDtype()).cat.set_categories(layer_order, ordered=True)
-
-        # selection = df['epoch'].isin([0, 1] + NCPlotter.standard_epochs)
-        selection = df['epoch'].isin([0, 10, 300])
-        # selection &= df['layer_name'] != 'model'
-        # selection &= df['layer_name'].isin(['model.block3.fc', 'model.block8.fc'])
-        selection &= df['layer_name'].isin(['model.block3.fc', 'model.block8.fc'])
-
-        subselection = df['type'] == 'within_single'
-        subselection &= df['sum'].isin([False])
-
-        sel_df = df[selection & subselection]
-        # grouped_df = sel_df.groupby(['epoch', 'layer_name', 'class_idx'], as_index=False)
-        class_largest_sv_df = sel_df[sel_df['sigma_idx'].isin([0]) & sel_df['sum'].isin([False])]
-        # class_sum_sv_df = sel_df[sel_df['sigma_idx'] == sel_df['sigma_idx'].max()][sel_df['sum'].isin([True])]  # Is always 1
-
-        # with warnings.catch_warnings():
-        #     warnings.simplefilter('ignore')
-        #     class_largest_sv_df.loc[:, ('value',)] = class_largest_sv_df['value'].apply(lambda v: 1/v)
-
-        # plot_utils.add_nc_line(df, nc_layer)
-        # sns.lineplot(data=class_largest_sv_df, x='layer_name', y='value', hue='epoch',
-        #              ci=None,
-        #              )
-        sns.lineplot(data=sel_df, x='sigma_idx', y='value', hue='epoch',
-                     style='layer_name',
-                     ci=None,
-                     palette=['r', 'p', 'g'],
-                     )
-
-        plot_utils.capitalize_legend(plt.gca().get_legend())
-        # plt.ylabel('Stable rank')
-        # plt.xlabel('Layer')
-        plt.xlabel("SV idx.")
-        plt.ylabel("Rel sing. val.")
-        plt.yscale('log')
-        # plt.ylim([10**(-6), 0.2])
-
-
-        # plt.title(f"Within class covariance stable rank")
-        # plt.yscale('log')
-        plt.xticks(rotation=90)
-
-        if PRETTY_OUT:
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                plt.gca().set_xticklabels(plot_utils.get_xticks(df[selection]['layer_name']))
-            plt.xticks(rotation=0)
-
-        return axes
-
-    '''
-
     @staticmethod
     def _plot_activationStableRank(df: pd.DataFrame, axes: Optional[Tuple[plt.Axes]] = None, nc_layer: Optional[str] = None):
         if axes is None:
@@ -752,229 +671,6 @@ class NCPlotter:
     pass
 
 
-'''
-def plot_runs_svds(base_dir, run_config_params, selected_epochs=None):
-    """For plotting the SVD correlation matrices."""
-
-    relevant_measures = {
-        'MLPSVD': None  # dict(x='epoch', hue='split', style=None)
-    }
-
-    for measure, plot_config in relevant_measures.items():
-        print(f"Plotting {measure}:")
-        for run_dir in plot_utils.filter_configs(base_dir, run_config_params):
-            print(f"\t{run_dir}", end=', ')
-            savedir = SaveDirs(run_dir, timestamp_subdir=False, use_existing=True)
-            # TODO(marius): Merge dataframes and plot
-            try:
-                measure_df = pd.read_csv(os.path.join(savedir.measurements, measure + '.csv'))
-            except FileNotFoundError as e:
-                warnings.warn(str(e))
-                continue
-            # sub_selection = (measure_df['l_ord'] <= 40) & (measure_df['r_ord'].isin(['m'] + list(map(str, range(4)))))
-            sub_selection = (measure_df['l_ord'] <= 24) & (measure_df['r_ord'].isin(['m']))  #  & (measure_df['l_type'].isin([-2]))
-
-            layers = measure_df['layer_name'].unique()
-            epochs = measure_df['epoch'].unique()
-
-            savepath = os.path.join(savedir.plots, measure)
-            if not os.path.exists(savepath):
-                os.makedirs(savepath)
-            savepath = os.path.join(savepath, r'e{epoch:0>3}/{layer}' + FILETYPE)
-            print(f"saving to {savepath}")
-
-            for epoch in tqdm.tqdm(epochs, leave=False):
-                if selected_epochs is not None and epoch not in selected_epochs:
-                    continue
-                for layer in layers:
-                    fig = plt.figure(figsize=(8, 6))
-                    selection = (measure_df['epoch'] == epoch) & (measure_df['layer_name'] == layer) & sub_selection
-
-                    corr_df = utils.corr_from_df(measure_df[selection])
-
-                    sns.heatmap(
-                        data=corr_df.applymap(abs),
-                        cmap=sns.light_palette('red', as_cmap=True), vmin=0.0, vmax=0.8,
-                        # data=corr_df,
-                        # cmap='vlag', vmin=-0.8, vmax=0.8,
-                    )
-                    plt.title(f"SVD correlation for {os.path.split(savedir.base)[-1]}:\n"
-                              f"Epoch: {epoch}, layer: {layer}")
-                    plt.tight_layout()
-                    formatted_savepath = savepath.format(layer=layer, epoch=epoch)
-                    if not os.path.exists(os.path.dirname(formatted_savepath)):
-                        os.makedirs(os.path.dirname(formatted_savepath))
-                    plt.savefig(formatted_savepath)
-                    # plt.show()
-                    plt.close()
-            print()
-
-
-def plot_approx_rank(base_dir, run_config_params):
-    """Plot the approximate rank of weight matrices."""
-
-    relevant_measures = {
-        'SingularValues': dict(x='layer_name', hue='epoch'),  # Remember to modify code too if needed when uncommenting others
-    }
-
-    for measure, plot_config in relevant_measures.items():
-        # print(f"Plotting {measure}:")
-        print(f"Plotting approximate rank")
-        for run_dir in plot_utils.filter_configs(base_dir, run_config_params):
-            print(f"\t{run_dir}", end=', ')
-            savedir = SaveDirs(run_dir, timestamp_subdir=False, use_existing=True)
-
-
-            try:
-                measure_df = pd.read_csv(os.path.join(savedir.measurements, measure + '.csv'))
-            except FileNotFoundError as e:
-                warnings.warn(str(e))
-                continue
-
-            # fig = plt.figure(figsize=(10, 2*8))
-            fix, axes = plt.subplots(3, 1, sharex='all', figsize=(10, 2*8))
-            """
-            ### Do Approx rank plot:
-            # Find first sigma where sum of singular values are 0.99 or greater
-            approx_rank_cutoff = 0.99
-            gt_cutoff_df = measure_df[(measure_df['value'] >= approx_rank_cutoff) & (measure_df['sum'].isin([True]))]  # Use only the sigma values greater than 99% (cumulative)
-            approx_rank_df = gt_cutoff_df.loc[gt_cutoff_df.groupby(['epoch', 'layer_name'])['sigma_idx'].idxmin()]  # For each unique combination ['epoch', 'layer_name'], get the value with the lowest sigma value
-            df = approx_rank_df
-            # del measure_df
-
-            selection = (df['epoch'] != -1)
-            # selection &= df['epoch'].isin([10, 50, 100, 200, 300])
-            # selection &= (df['layer_name'].isin(['conv1', 'bn1', *[f'layer{i//2}.{i%2}' for i in range(2, 10)], 'avgpool', 'fc']))
-            selection &= (df['layer_name'] != 'model')
-
-            # Plot absolute traces
-            ## If there is a hue-parameter and the x-axis has only one entry, replace the x-axis with the hue-parameter
-            if 'hue' in plot_config.keys() and len(df[selection][plot_config['x']].unique()) == 1:
-                plot_config['x'] = plot_config['hue']
-                del plot_config['hue']
-
-            # Do the plotting
-            sns.lineplot(data=df[selection], y='sigma_idx', **plot_config)
-            """
-            ### Do sing_val_cutoff plot:
-            # fig = plt.figure(figsize=(10, 8))
-            plt.sca(axes[0])
-
-            # Approx rank
-            cutoffs = [0.9, 0.97, 0.99]
-
-            cutoff_df_list = []
-            for cutoff in cutoffs:
-                cutoff_df = measure_df[(measure_df['value'] > cutoff) & (measure_df['sum'].isin([True]))]  # Use only the sigma values greater than 99% (cumulative)
-                cutoff_df = cutoff_df.loc[cutoff_df.groupby(['epoch', 'layer_name'])['sigma_idx'].idxmin()]  # For each unique combination ['epoch', 'layer_name'], get the value with the lowest sigma value
-                cutoff_df.insert(len(cutoff_df.columns), 'cutoff', cutoff)
-                cutoff_df_list.append(cutoff_df)
-
-            df = pd.concat(cutoff_df_list, ignore_index=True)
-
-            selection = df['epoch'] == df['epoch'].max()
-            # selection = (df['epoch'] != -1)
-            # selection &= df['epoch'].isin([10, 50, 100, 200, 300])
-            # selection &= (df['layer_name'].isin(['conv1', 'bn1', *[f'layer{i//2}.{i%2}' for i in range(2, 10)], 'avgpool', 'fc']))
-            selection &= (df['layer_name'] != 'model')
-
-            if 'hue' in plot_config.keys() and len(df[selection][plot_config['x']].unique()) == 1:
-                plot_config['x'] = plot_config['hue']
-                del plot_config['hue']
-
-            # Do the plotting
-            sns.lineplot(data=df[selection], y='sigma_idx', x=plot_config['x'], hue='cutoff', palette='tab10',)  # **plot_config)
-            plt.title(f"Approximate rank over {plot_config['x']} for \n{os.path.split(savedir.base)[-1]}")
-
-            plt.ylabel(r'Approximate rank')
-            plt.yscale('log')
-
-            plt.xticks(rotation=90)
-
-            # plt.tight_layout()
-            # savepath = os.path.join(savedir.plots, measure + "_ApproxRankCutoffs" + FILETYPE)
-            # print(f"saving to {savepath}")
-            # plt.savefig(savepath)
-            # plt.show()
-
-
-            ### Do Stable Rank plot:
-
-            # fig = plt.figure(figsize=(10, 8))
-            plt.sca(axes[1])
-
-            stable_rank_sel = (measure_df['sum'].isin([True])) & (measure_df['sigma_idx'] == 0)
-            df = measure_df[stable_rank_sel]
-            df['value'] = 1 / (df['value'].to_numpy() + 1E-24)
-
-            selection = (df['epoch'] != -1)
-            # selection &= df['epoch'].isin([10, 50, 100, 200, 300])
-            # selection &= (df['layer_name'].isin(['conv1', 'bn1', *[f'layer{i//2}.{i%2}' for i in range(2, 10)], 'avgpool', 'fc']))
-            selection &= (df['layer_name'] != 'model')
-
-            if 'hue' in plot_config.keys() and len(df[selection][plot_config['x']].unique()) == 1:
-                plot_config['x'] = plot_config['hue']
-                del plot_config['hue']
-
-            # Do the plotting
-            sns.lineplot(data=df[selection], y='value', **plot_config)
-            plt.title(f"Stable rank over {plot_config['x']} for \n{os.path.split(savedir.base)[-1]}")
-
-            plt.ylabel(r'Stable rank $\|A\|_F \;/\; \|A\|_2$')  # == $\sum_{i}\sigma_i \; / \max{\sigma_i}$
-            plt.yscale('log')
-
-            plt.xticks(rotation=90)
-
-            # plt.tight_layout()
-            # savepath = os.path.join(savedir.plots, measure + "_StableRank" + FILETYPE)
-            # print(f"saving to {savepath}")
-            # plt.savefig(savepath)
-            # plt.show()
-
-
-            ### Do sing_val_cutoff plot:
-            # fig = plt.figure(figsize=(10, 8))
-            plt.sca(axes[2])
-
-            cutoffs = [3E-2, 1E-2, 3E-3, 1E-3, 3E-4, 1E-4]
-
-            cutoff_df_list = []
-            for cutoff in cutoffs:
-                cutoff_df = measure_df[(measure_df['value'] < cutoff) & (measure_df['sum'].isin([False]))]  # Use only the sigma values greater than 99% (cumulative)
-                cutoff_df = cutoff_df.loc[cutoff_df.groupby(['epoch', 'layer_name'])['sigma_idx'].idxmin()]  # For each unique combination ['epoch', 'layer_name'], get the value with the lowest sigma value
-                cutoff_df.insert(len(cutoff_df.columns), 'cutoff', cutoff)
-                cutoff_df_list.append(cutoff_df)
-
-            df = pd.concat(cutoff_df_list, ignore_index=True)
-
-            selection = df['epoch'] == df['epoch'].max()
-            # selection = (df['epoch'] != -1)
-            # selection &= df['epoch'].isin([10, 50, 100, 200, 300])
-            # selection &= (df['layer_name'].isin(['conv1', 'bn1', *[f'layer{i//2}.{i%2}' for i in range(2, 10)], 'avgpool', 'fc']))
-            selection &= (df['layer_name'] != 'model')
-
-            if 'hue' in plot_config.keys() and len(df[selection][plot_config['x']].unique()) == 1:
-                plot_config['x'] = plot_config['hue']
-                del plot_config['hue']
-
-            # Do the plotting
-            sns.lineplot(data=df[selection], y='sigma_idx', x=plot_config['x'], hue='cutoff', palette='tab10',
-                         )  # **plot_config)
-            plt.title(f"Cutoff rank over {plot_config['x']} after {df['epoch'].max()} epochs for \n{os.path.split(savedir.base)[-1]}")
-
-            plt.ylabel(r'Sigmas larger than cutoff: $\min_i$ s.t. $(\frac{\sigma_i}{\sum_i \sigma_i} < $ cutoff)')  # == $\sum_{i}\sigma_i \; / \max{\sigma_i}$
-            plt.yscale('log')
-
-            plt.xticks(rotation=90)
-
-            plt.tight_layout()
-            # savepath = os.path.join(savedir.plots, measure + "_CutoffRank" + FILETYPE)
-            savepath = os.path.join(savedir.plots, measure + "_Ranks" + FILETYPE)
-            print(f"saving to {savepath}")
-            plt.savefig(savepath)
-            # plt.savefig(f'../tmp/{os.path.split(savedir.base)[-1]}_{measure}_ranks' + FILETYPE)
-            plt.show()
-'''
 
 def main(logs_parent_dir: str):
     """Run some standard plotting on the measurements. Prone to failure!!!"""
@@ -982,35 +678,17 @@ def main(logs_parent_dir: str):
         # Model={'model-name': 'convnet_deep'},
         # Data={'dataset-id': 'cifar10'},
         # Optimizer={},
-        # Logging={'save-dir': 'logs/mlp_sharedweight_xwide_nobn_mnist'},
         # Logging={'save-dir': 'logs/debug'}
         # Measurements={},
     )
     NCPlotter.plot_runs(logs_parent_dir, run_config_params)
-    # plot_approx_rank(logs_parent_dir, run_config_params)
-    # plot_runs_svds(logs_parent_dir, run_config_params, selected_epochs=[300])
-    # plot_runs(logs_parent_dir, run_config_params)
-    # plot_runs_rel_trace(logs_parent_dir, run_config_params)
-    # for i in [0, 1, 3, 5, 10, 20, 30, 50, 80, 100, 150, 200, 250, 300]:
-    #     plot_runs_rel_trace(logs_parent_dir, run_config_params, epoch=i)
 
 
 def _test():
-    # root_dir = '/home/marius/mit/research/NN_layerwise_analysis'
     save_dir = SaveDirs('logs', timestamp_subdir=False, use_existing=True)
 
     log_dirs = []
-    # log_dirs.append('matrix/default_2')
-    log_dirs.append('matrix/papyan_mseloss/resnet50_cifar10_reruns')
-    log_dirs.append('matrix/papyan_mseloss/resnet50_cifar_reruns')
-    # log_dirs.append('matrix/default_2')
-    # log_dirs.append('matrix/2022-11-03T20:02/')
-    # log_dirs.append('matrix/2023-01-17T04:08')
-    # log_dirs.append('matrix/papyan')
-    # log_dirs.append('matrix/customnets')
-    # log_dirs.append('matrix/customnets_param_search')
-    # log_dirs.append('_archive')
-    # log_dirs.append('_archive/_old_2022-11-03/matrix/convnet/2022-10-21T16:10/convnet_deep')
+    log_dirs.append('matrix/')
 
     for log_dir in log_dirs:
         print('-'*32, f'Checking logdir: logs/{log_dir}', '-'*32, sep='\n')

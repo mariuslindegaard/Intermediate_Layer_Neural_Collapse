@@ -35,7 +35,6 @@ def filter_all_named_modules(model: torch.nn.Module, layer_names: Union[Iterable
     if require_leaf is None:
         require_leaf = yield_all
 
-    # TODO(marius): Include check for if layers specifications are never contained in model
     for name, module, in model.named_modules():
         # Don't include if the module has children and we only want leaf modules.
         if require_leaf and len(list(module.children())) != 0:

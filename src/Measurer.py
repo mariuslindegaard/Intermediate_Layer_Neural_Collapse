@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 import scipy.sparse.linalg
 import tqdm
-import tensorly.decomposition
 
 from collections import defaultdict, OrderedDict
 from typing import Dict, Tuple, List, Any, Union
@@ -33,7 +32,7 @@ class Accuracy(Measurer):
     def measure(self, wrapped_model: Models.ForwardHookedOutput, dataset: DatasetWrapper, shared_cache=None) -> pd.DataFrame:
         if shared_cache is None:
             shared_cache = SharedMeasurementVarsCache()
-        wrapped_model.eval()  # TODO(marius): Might throw error. If not: Change in TraceMeasure too
+        wrapped_model.eval()
         device = next(wrapped_model.parameters()).device
 
         dataset_splits = {
@@ -117,9 +116,6 @@ class CDNV(Measurer):
         global_mean = shared_cache.calc_global_mean(class_means, class_num_samples)
 
         total_activation_var: Dict[str, torch.Tensor] = OrderedDict()  # \Sigma_w
-        # NCC_match_net = 0
-
-        # M = torch.stack(mean).T  # Mean of classes before layer
 
         for inputs, targets in tqdm.tqdm(dataset.train_loader, leave=False, desc='  CDNV, Calculating'):
             inputs, targets = inputs.to(device), targets.to(device)
@@ -186,7 +182,7 @@ class NC1(Measurer):
             S_within = torch.mean(layer_cov_within, axis=0).cpu().numpy()
 
             rel_class_means = (class_means[layer_name] - global_mean[layer_name]).flatten(start_dim=1).to('cpu')
-            layer_cov_between = torch.matmul(rel_class_means.T, rel_class_means) / dataset.num_classes  # TODO(marius): Verify calculation
+            layer_cov_between = torch.matmul(rel_class_means.T, rel_class_means) / dataset.num_classes
             S_between = layer_cov_between.cpu().numpy()
             eigvecs, eigvals, _ = scipy.linalg.svd(S_between)
             inv_eigvals = eigvals ** -1
@@ -222,7 +218,6 @@ class WeightSVs(Measurer):
                     continue
                 weights = weights.detach().cpu().numpy()
 
-
             elif isinstance(layer_obj, torch.nn.Conv2d):  # For all convlayers in VGG (and others)
                 # Get layer weights
                 try:
@@ -236,7 +231,6 @@ class WeightSVs(Measurer):
 
             else:
                 continue
-
 
             U_w, S_w, Vh_w = scipy.linalg.svd(weights)  # weights == U_w @ "np.diag(S_w).reshape(weights.shape) (padded)" Vh_w
 
@@ -354,7 +348,6 @@ class ActivationStableRank(Measurer):
                                                  for layer_name, class_mean in class_means.items()}
 
         # for inputs, targets in tqdm.tqdm(dataset.train_loader, leave=False, desc='  ActivationStableRank [0/2], Frobenius'):
-        # TODO(marius): Implement progress bar
         pbar = tqdm.tqdm(range(ActivationStableRank.MAX_ITERS), leave=False, desc='  ActStbRank [1/2], Eigvecs')
         for epoch_iters in pbar:
 
@@ -400,7 +393,6 @@ class ActivationStableRank(Measurer):
                 pbar.set_description(f'ActStbRank [1/2], EVs, dCos: {min_cos_angle:.3G}')
 
             # Update old eigvecs to match new
-            # prev_layer_eigvecs = curr_layer_eigvecs_normed
             for layer_name, prev_eigvecs in prev_layer_eigvecs.items():
                 curr_eigvecs = curr_layer_eigvecs_normed[layer_name]
                 omega = ActivationStableRank.OMEGA  # For faster convergence
@@ -411,7 +403,6 @@ class ActivationStableRank(Measurer):
         out: List[Dict[str, Any]] = []
         for layer_name in tqdm.tqdm(wrapped_model.output_layers, desc='  ActivationStableRank, postproc.', leave=False):
             sq_stable_rank = frobenius_sq[layer_name].cpu() / (curr_layer_eigvals[layer_name]).cpu()  # Note: Sq. of frobenius over largest sq. SV)
-            # sq_stable_rank = torch.sqrt(frobenius_sq[layer_name].cpu() / (curr_layer_eigvals[layer_name]**2).cpu())  # Note: Sq. of frobenius over largest sq. SV)
             for class_idx, class_sq_stable_rank in enumerate(sq_stable_rank):
                 out.append({'value': class_sq_stable_rank.item(), 'layer_name': layer_name, 'class_idx': class_idx})
 
@@ -429,7 +420,7 @@ class MLPSVD(Measurer):
         device = next(wrapped_model.parameters()).device
 
         class_means, class_num_samples = shared_cache.get_train_class_means_nums(wrapped_model, dataset)
-        global_mean = shared_cache.calc_global_mean(class_means, class_num_samples)
+        # global_mean = shared_cache.calc_global_mean(class_means, class_num_samples)
         classwise_cov_within = shared_cache.get_train_class_covariance(wrapped_model, dataset)
 
         # Calculate NC1-condition and add to output
@@ -439,7 +430,7 @@ class MLPSVD(Measurer):
                 continue
 
             # Get class means and covariance
-            layer_rel_class_means = (class_means[layer_name] - global_mean[layer_name]).flatten(start_dim=1).to('cpu')
+            # layer_rel_class_means = (class_means[layer_name] - global_mean[layer_name]).flatten(start_dim=1).to('cpu')
             layer_classwise_cov_within = classwise_cov_within[layer_name].to('cpu')
             # layer_cov_between = torch.matmul(layer_rel_class_means.T, layer_rel_class_means) / dataset.num_classes
 
@@ -465,16 +456,6 @@ class MLPSVD(Measurer):
                 class_mean = class_means[layer_name][class_idx].detach().to('cpu').numpy()
                 class_mean /= np.linalg.norm(class_mean)  # Normalize class mean
 
-                """ For using rows instead of class means
-                for w_idx, w_row in enumerate(weights):
-                    w_row /= np.linalg.norm(w_row)
-                    correlation = class_mean.T @ w_row
-                    out.append({'value': correlation, 'layer_name': layer_name,
-                                'l_type': -2, 'l_ord': w_idx,
-                                'r_type': class_idx, 'r_ord': 'm',
-                                })
-                """
-
                 for w_idx, w_singular_vec in enumerate(Vh_w_sliced):
                     if w_idx >= len(S_w):  # Don't evaluate if rank is lower than idx
                         continue
@@ -483,16 +464,6 @@ class MLPSVD(Measurer):
                                 'l_type': -1, 'l_ord': w_idx,
                                 'r_type': class_idx, 'r_ord': 'm',
                                 })
-                """ For visualizing singular vectors
-                    # Plot singular vector:
-                    import matplotlib.pyplot as plt
-                    # import pdb; pdb.set_trace()
-                    digit_vec = w_singular_vec
-                    plt.imshow(digit_vec.reshape(32, 32), cmap='gray')
-                    plt.title(f"Singular vector {w_idx} with $\\sigma={S_w[w_idx]:.5G}$\nOut-svec: {np.round(U_w[:,w_idx], 2)}")
-                    plt.savefig(f'tmp_w_{w_idx}')
-                continue
-                """
 
                 # Logging inner products of class covariance and weight svd
                 corr = Vh_w_sliced @ Vh_c_sliced.T
@@ -554,22 +525,6 @@ class AngleBetweenSubspaces(Measurer):
                     warnings.warn(f"Module: {layer_name}, {layer_obj}\ndoes not have a 'weight' parameter. Make sure it is a fc-layer.")
                     continue
 
-                """
-                # Preprocess by reshaping etc.
-                weights = weights.flatten(-2, -1).transpose(1, 0).cpu().detach().numpy()
-                layer_class_means = class_means[layer_name].flatten(-2, -1).permute(1, 2, 0).detach().cpu().numpy()
-                
-                # Decompose weights
-                S_w, (U_w, V_w, X_w) = tensorly.decomposition.tucker(weights, rank=rank)
-                
-                # Decompose class means
-                S_m, (U_m, V_m, X_m) = tensorly.decomposition.tucker(layer_class_means, rank=rank)
-                
-                S = scipy.linalg.svdvals(
-                    U_w.T @ U_m  # U_w[:, :rank].T @ U_m[:, :rank]
-                )
-                """
-
                 weights_tx = weights.transpose(1, 0).flatten(start_dim=1)  # ch_in x (C * h * w)
                 features_tx = class_means[layer_name].transpose(1, 0).flatten(start_dim=1)  # ch_in x (ch_out * h * w)
                 U_w,S_w,Vh_w = torch.linalg.svd(weights_tx.detach())
@@ -586,69 +541,8 @@ class AngleBetweenSubspaces(Measurer):
             else:
                 continue
 
-            # layer_rel_class_means = (class_means[layer_name] - global_mean[layer_name]).flatten(start_dim=1).to('cpu')
-            # layer_classwise_cov_within = classwise_cov_within[layer_name].to('cpu')
-            # layer_cov_between = torch.matmul(layer_rel_class_means.T, layer_rel_class_means) / dataset.num_classes
-
-            # U, S, Vh = scipy.linalg.svd(Vh_w @ U_m)
-
-            # S_sum = np.cumsum(S) / 10  # TODO(marius): Remove "/10" and update NCPlotter._plot_angleBetweenSubspaces (i.e. remove "*10")
-
-            # for idx, (sigma, sigma_sum) in enumerate(zip(S, S_sum)):
-            #     out.append({'value': sigma, 'sigma_idx': idx, 'layer_name': layer_name, 'sum': False})
-            #     out.append({'value': sigma_sum, 'sigma_idx': idx, 'layer_name': layer_name, 'sum': True})
-
         return pd.DataFrame(out)
 
-
-'''
-class AngleBetweenSubspaces(Measurer):
-    """Measure angle between subspaces of first 10 singular vectors of weights and class means"""
-
-    def measure(self, wrapped_model: Models.ForwardHookedOutput, dataset: DatasetWrapper, shared_cache=None) -> pd.DataFrame:
-        if shared_cache is None:
-            shared_cache = SharedMeasurementVarsCache()
-
-        wrapped_model.base_model.eval()
-        device = next(wrapped_model.parameters()).device
-
-        class_means, class_num_samples = shared_cache.get_train_class_means_nums(wrapped_model, dataset)
-        # global_mean = shared_cache.calc_global_mean(class_means, class_num_samples)
-        # classwise_cov_within = shared_cache.get_train_class_covariance(wrapped_model, dataset)
-
-        out: List[Dict[str, Any]] = []
-        for layer_name in tqdm.tqdm(class_means.keys(), desc='  AngleBet.Subspc., calculating', leave=False):
-            if not layer_name.endswith('fc'):
-                continue
-
-            # layer_rel_class_means = (class_means[layer_name] - global_mean[layer_name]).flatten(start_dim=1).to('cpu')
-            # layer_classwise_cov_within = classwise_cov_within[layer_name].to('cpu')
-            # layer_cov_between = torch.matmul(layer_rel_class_means.T, layer_rel_class_means) / dataset.num_classes
-            layer_class_means = class_means[layer_name]
-
-            # Get the model weights
-            fc_layer = utils.rgetattr(wrapped_model.base_model, layer_name)
-            try:
-                weights = fc_layer.weight
-            except AttributeError as e:
-                warnings.warn(f"Module: {layer_name}, {fc_layer}\ndoes not have a 'weight' parameter. Make sure it is a fc-layer.")
-                continue
-            weights = weights.detach()
-
-            U_w, S_w, Vh_w = torch.linalg.svd(weights)  # weights == U_w @ "np.diag(S_w).reshape(weights.shape) (padded)" Vh_w
-            U_m, S_m, Vh_m = torch.linalg.svd(layer_class_means.T)  # l_c_m.T is (d x C)
-
-            # U, S, Vh = scipy.linalg.svd(Vh_w @ U_m)
-            S = torch.linalg.svdvals(Vh_w[:dataset.num_classes] @ U_m[:, :dataset.num_classes]).to('cpu').numpy()
-
-            S_sum = np.cumsum(S) / dataset.num_classes
-
-            for idx, (sigma, sigma_sum) in enumerate(zip(S, S_sum)):
-                out.append({'value': sigma, 'sigma_idx': idx, 'layer_name': layer_name, 'sum': False})
-                out.append({'value': sigma_sum, 'sigma_idx': idx, 'layer_name': layer_name, 'sum': True})
-
-        return pd.DataFrame(out)
-'''
 
 class ETF(Measurer):
     """Measure 'angle class means plus 1/(C-1)' and norms of relative class means.
@@ -749,7 +643,7 @@ class SharedMeasurementVarsCache:
     E.g. class means. This allows them to be calculated only once per epoch!
     """
     COV_MAX_BATCH_SIZE = 64  # <- Maximum batch size to use when doing memory-heavy calculations.
-    COV_IGNORE_LAYER_IDS = ['', 'model', 'model.flatten', 'conv1', 'bn1', 'relu', 'maxpool']  # TODO(marius): Make less hardcoded
+    COV_IGNORE_LAYER_IDS = ['', 'model', 'model.flatten', 'conv1', 'bn1', 'relu', 'maxpool']  # TODO: Make less hardcoded
     COV_NUM_LAYERS = 0  # Number of layers to use. 0 for all, -x for the last x, +x for the first x.
 
     def __init__(self):
@@ -891,7 +785,7 @@ class SharedMeasurementVarsCache:
         for layer_name in layer_pbar:
             layer_pbar.set_description(f"  Cache; covariances: {layer_name:16}")
             # Ignore the largest layers of resnet18
-            if layer_name in self.COV_IGNORE_LAYER_IDS:  # TODO(marius): Make only catch relevant net, not all
+            if layer_name in self.COV_IGNORE_LAYER_IDS:  # TODO: Make only catch relevant net, not all
                 continue
 
             batch_pbar = tqdm.tqdm(dataset.train_loader, leave=False)
@@ -944,7 +838,7 @@ class SharedMeasurementVarsCache:
         # Make cov_within an average instead of a sum
         for layer_name, cov_within_sum in cov_within.items():
             # Divide by num samples, but at least one to remedy 0-sample classes producing NaNs
-            cov_within[layer_name] = cov_within_sum / torch.clamp(class_num_samples.unsqueeze(-1).unsqueeze(-1).to('cpu'), min=1)  # TODO(marius): Use bessels correction?
+            cov_within[layer_name] = cov_within_sum / torch.clamp(class_num_samples.unsqueeze(-1).unsqueeze(-1).to('cpu'), min=1)
 
         return cov_within
 
