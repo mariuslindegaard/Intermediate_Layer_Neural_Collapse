@@ -26,5 +26,5 @@ Logging:
   log-epochs: [0, 1, 2]  # Overrides log-interval
 
 Measurements:
-  measures: Fast_StalbeRank
+  measures: Fast_StableRank
 ...
