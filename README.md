@@ -20,6 +20,10 @@ Assuming conda is installed, the following commands will run a simple experiment
 conda env create -f environment.yaml
 conda activate nc
 
+# Make the datasets directory
+mkdir datasets
+ln -s ../datasets src/datasets
+
 # Run a simple test
 cd src
 python3 main.py --config ../config/debug.yaml
