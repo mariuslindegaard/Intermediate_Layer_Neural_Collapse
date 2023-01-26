@@ -26,11 +26,11 @@ ln -s ../datasets src/datasets
 
 # Run a simple test
 cd src
-python3 main.py --config ../config/debug.yaml
+python3 main.py --config ../config/debug.yaml  # Should produce lots of empty plots, but not crash
 ```
 which will give checkpoints, measurements, and plots in `logs/debug/`.
 
-The actual experiments are time consuming enough that it is advisable to use slurm on a gpu cluster.
+The actual experiments are time-consuming enough that it is advisable to use slurm on a gpu cluster.
 To run the actual experiments in slurm, run
 ```shell
 python3 main.py --config ../config/matrix/matrix_resnets.yaml  --matrix --slurm
