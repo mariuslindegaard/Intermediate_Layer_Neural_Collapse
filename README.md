@@ -33,7 +33,7 @@ which will give checkpoints, measurements, and plots in `logs/debug/`.
 The actual experiments are time-consuming enough that it is advisable to use slurm on a gpu cluster.
 To run the actual experiments in slurm, run
 ```shell
-python3 main.py --config ../config/matrix/matrix_resnets.yaml  --matrix --slurm
+python3 main.py --config ../config/matrix/matrix_resnets.yaml --matrix --slurm
 python3 main.py --config ../config/matrix/matrix_customnets_param_search.yaml --matrix --slurm
 ```
 which will send the jobs to the slurm scheduler. Remember to monitor your resource usage!
