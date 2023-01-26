@@ -14,7 +14,7 @@ Additionally, in order to be able to run these experiments in parallel,
 the program should be run on a machine (cluster) with [Slurm workload scheduler](https://slurm.schedmd.com/)
 (*with GPUs available*, otherwise the job requirements are never satisfied).
 
-Assuming conda is installed, the following commands will run a simple experiment run:
+Assuming conda is installed, the following commands will start a simple experiment run:
 ```shell
 # Create and activate the conda environment
 conda env create -f environment.yaml
