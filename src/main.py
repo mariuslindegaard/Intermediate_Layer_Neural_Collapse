@@ -44,9 +44,8 @@ def main(config_file_path: str, unpack_config_matrix: bool, parse_and_submit_to_
             slurm_utils.run_experiments(len(configs_with_path), base_savedir)
             print(f"{len(configs_with_path)} tasks submitted to slurm scheduler.")
         else:
-            warnings.warn(f"\n\nRunning {len(configs_with_path)} experiments serially. "
-                          "This will likely take hours if not days! "
-                          "It is advised you submit with slurm.\n\n")
+            warnings.warn(f"\n\nRunning {len(configs_with_path)} experiments serially." +
+                          (" This will likely take hours if not days! It is advised you submit with slurm.\n\n" if len(configs_with_path) > 1 else ""))
             for config_dict, rel_savedir in configs_with_path:
                 print('-' * 32, f'### Running experiment: {rel_savedir}', '-' * 32, sep='\n')
                 run_experiment(os.path.join(base_savedir.base, rel_savedir, 'config.yaml'), plot=plot_after_run)
